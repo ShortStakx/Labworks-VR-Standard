@@ -3,7 +3,7 @@ The official recreation of the shader used in Boneworks!
 
 Made by ShortStak & EvroDev
 
-This package comes with the main recreation shader and the transparent fork of it
+This package comes with the main recreation shader and other forks of it
 
 # Installation Guide
 
