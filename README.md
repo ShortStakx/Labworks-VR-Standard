@@ -1,4 +1,5 @@
-#Important!
+# Important!
+
 The height map tiling and offset controls the rest of the maps tiling and offset, excluding detail maps and normals.
 So if you're albedo tiling is, say for example 0.1, 0.1, and the height map is, 1,1, you need to change the height map tiling to 0.1, 0.1
 
