@@ -47,18 +47,20 @@ Shader "Valve/VRStandard"
 		_SSRTemporalMul("Temporal Accumulation Factor", Range(0, 2)) = 1.0
 		//[Toggle(_SM6_QUAD)] _SM6_Quad("Quad-avg SSR", Float) = 0
 
+		_Surface ("Surface Type", float) = 0
+		_BlendSrc ("Blend Source", float) = 1
+		_BlendDst ("Blend Destination", float) = 0
+		[ToggleUI] _ZWrite ("ZWrite", float) = 1
+		_Cull ("Cull Side", float) = 2
+
 
 	}
 	SubShader
 	{
 		LOD 0
 
-		
 		Tags { "RenderPipeline"="UniversalPipeline" "RenderType"="Opaque" "Queue"="Geometry" }
 		
-		Blend One Zero
-		ZWrite On
-		Cull Back
 		ZTest LEqual
 		Offset 0 , 0
 		ColorMask RGBA
@@ -69,7 +71,9 @@ Shader "Valve/VRStandard"
 		Pass
 		{
 
-			
+			Blend [_BlendSrc] [_BlendDst]
+			ZWrite [_ZWrite]
+			Cull [_Cull]
 
 			Name "Forward"
 			Tags { "Lightmode"="UniversalForward" }
@@ -760,15 +764,15 @@ Shader "Valve/VRStandard"
 				
 				half4 color = half4(1, 1, 1, 1);
 				
-				#if defined(_SurfaceOpaque)
-				int _Surface = 0;
-				#elif defined(_SurfaceTransparent)
-				int _Surface = 1;
-				#elif defined(_SurfaceFade)
-				int _Surface = 2;
-				#else
-				int _Surface = 0;
-				#endif
+				//#if defined(_SurfaceOpaque)
+				//int _Surface = 0;
+				//#elif defined(_SurfaceTransparent)
+				//int _Surface = 1;
+				//#elif defined(_SurfaceFade)
+				//int _Surface = 2;
+				//#else
+				//int _Surface = 0;
+				//#endif
 				
 			// Begin Injection LIGHTING_CALC from Injection_SSR.hlsl ----------------------------------------------------------
 				#if defined(_SSR_ENABLED)
@@ -816,7 +820,8 @@ Shader "Valve/VRStandard"
 			Name "DepthOnly"
 			Tags { "Lightmode"="DepthOnly" }
 			
-			
+			ZWrite [_ZWrite]
+			Cull [_Cull]
 			ColorMask 0
 
 			HLSLPROGRAM
@@ -1067,6 +1072,8 @@ Shader "Valve/VRStandard"
 			Name "DepthNormals"
 			Tags { "Lightmode"="DepthNormals" }
 			
+			ZWrite [_ZWrite]
+			Cull [_Cull]
 			
 			
 			
@@ -1410,9 +1417,10 @@ Shader "Valve/VRStandard"
 			Tags { "LightMode"="ShadowCaster" }
 
 			
+			ZWrite [_ZWrite]
+			ZTest LEqual
 			
-			
-			
+			Cull [_Cull]
 			ColorMask 0
 
 			HLSLPROGRAM
@@ -1699,7 +1707,8 @@ Shader "Valve/VRStandard"
 			Name "Meta"
 			Tags { "LightMode"="Meta" }
 			
-			
+			Blend [_BlendSrc] [_BlendDst]
+			ZWrite [_ZWrite]
 			Cull Off
 
 			HLSLPROGRAM
