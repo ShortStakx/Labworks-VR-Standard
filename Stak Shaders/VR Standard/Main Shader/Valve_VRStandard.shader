@@ -47,7 +47,7 @@ Shader "Valve/VRStandard"
 		_SSRTemporalMul("Temporal Accumulation Factor", Range(0, 2)) = 1.0
 		//[Toggle(_SM6_QUAD)] _SM6_Quad("Quad-avg SSR", Float) = 0
 
-		_Surface ("Surface Type", float) = 0
+		[KeywordEnum(Opaque,Transparent,Fade)] _Surface ("Surface Type", float) = 0
 		_BlendSrc ("Blend Source", float) = 1
 		_BlendDst ("Blend Destination", float) = 0
 		[ToggleUI] _ZWrite ("ZWrite", float) = 1
@@ -79,7 +79,7 @@ Shader "Valve/VRStandard"
 			Tags { "Lightmode"="UniversalForward" }
 			
 			HLSLPROGRAM
-			#define _SurfaceOpaque
+			//#define _SurfaceOpaque
 			#pragma multi_compile_fog
 			#define LITMAS_FEATURE_LIGHTMAPPING
 			#pragma multi_compile_fragment _ _VOLUMETRICS_ENABLED
@@ -764,15 +764,15 @@ Shader "Valve/VRStandard"
 				
 				half4 color = half4(1, 1, 1, 1);
 				
-				//#if defined(_SurfaceOpaque)
-				//int _Surface = 0;
-				//#elif defined(_SurfaceTransparent)
-				//int _Surface = 1;
-				//#elif defined(_SurfaceFade)
-				//int _Surface = 2;
-				//#else
-				//int _Surface = 0;
-				//#endif
+				#if defined(_SurfaceOpaque)
+				int _Surface = 0;
+				#elif defined(_SurfaceTransparent)
+				int _Surface = 1;
+				#elif defined(_SurfaceFade)
+				int _Surface = 2;
+				#else
+				int _Surface = 0;
+				#endif
 				
 			// Begin Injection LIGHTING_CALC from Injection_SSR.hlsl ----------------------------------------------------------
 				#if defined(_SSR_ENABLED)
