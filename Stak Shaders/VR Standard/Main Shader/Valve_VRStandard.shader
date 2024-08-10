@@ -310,7 +310,7 @@ Shader "Valve/VRStandard"
 				float4 _EmissionColor;
 				float _BlendSrc;
 				float _BlendDst;
-				float _Surface;
+				//float _Surface;
 				float _OcclusionStrength;
 				float _Glossiness;
 				float _BumpScale;
@@ -336,7 +336,7 @@ Shader "Valve/VRStandard"
 				//half  _EmissionFalloff;
 				//half  _BakedMutiplier;
 			// End Injection MATERIAL_CBUFFER from Injection_Emission.hlsl ----------------------------------------------------------
-				//int _Surface;
+				int _Surface;
 			CBUFFER_END
 			sampler2D _MainTex;
 			sampler2D _ParallaxMap;
@@ -758,16 +758,15 @@ Shader "Valve/VRStandard"
 				
 				half4 color = half4(1, 1, 1, 1);
 				
-				//#if defined(_SurfaceOpaque)
-				//int _Surface = 0;
-				//#elif defined(_SurfaceTransparent)
-				//int _Surface = 1;
-				//#elif defined(_SurfaceFade)
-				//int _Surface = 2;
-				//#else
-				//int _Surface = 0;
-				//#endif
-				//int _IntSurf = _Surface
+				// #if _Surface == 0
+				// int _Surface = 0;
+				// #elif _Surface == 1
+				// int _Surface = 1;
+				// #elif _Surface == 2
+				// int _Surface = 2;
+				// #else
+				// int _Surface = 0;
+				// #endif
 				
 			// Begin Injection LIGHTING_CALC from Injection_SSR.hlsl ----------------------------------------------------------
 				#if defined(_SSR_ENABLED)
@@ -2209,7 +2208,7 @@ Shader "Valve/VRStandard"
 	}
 	/*ase_lod*/
 
-	CustomEditor "UnityEditor.ShaderGraphLitGUI"
+	CustomEditor "UnityEditor.LitMASIMGUI"
 	Fallback "Hidden/InternalErrorShader"
 	
 }
