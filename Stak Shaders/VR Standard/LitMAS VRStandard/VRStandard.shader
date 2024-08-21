@@ -23,12 +23,19 @@ Shader "SLZ/LitMAS/LitMAS VRStandard"
 		_EmissionFalloff("Emission Falloff", Float) = 1
 		_BakedMutiplier("Emission Baked Mutiplier", Float) = 1
 		
-        [Space(30)][Header(Details)][Space(10)][KeywordEnum(Off,Default,MaskAlbedoNormal)] _Details("Details enabled", Float) = 0
+        [Space(30)][Header(Details)][Space(10)][KeywordEnum(Off,Default,MaskAlbedoNormal)] _Details("Detail Type", Float) = 0
 		_DetailMap("Detail Map", 2D) = "gray" {}
 		_DetailMask("Detail Mask", 2D) = "white" {}
 		[NoScaleOffset]_DetailAlbedoMap("Detail Albedo x2", 2D) = "white" {}
 		[NoScaleOffset]_DetailNormalMap("Detail Normal", 2D) = "bump" {}
 		_DetailNormalMapScale("Detail Normal Scale", Float) = 1
+
+		[Header(Color Mask)][Toggle(_COLORMASK_ON)] _UseColorMask("Color Tint Enable", Float) = 0
+		[NoScaleOffset]_ColorMask("Color Mask", 2D) = "white" {}
+		_ColorShift1("_ColorShift1", Color) = (1,1,1,1)
+		_ColorShift2("_ColorShift2", Color) = (1,1,1,1)
+		_ColorShift3("_ColorShift3", Color) = (1,1,1,1)
+		_ColorShift4("_ColorShift4", Color) = (1,1,1,1)
 		
         [Space(30)][Header(Screen Space Reflections)][Space(10)][Toggle(_NO_SSR)] _SSROff("Disable SSR", Float) = 0
 		[Header(This should be 0 for skinned meshes)]

@@ -53,7 +53,7 @@
 #pragma multi_compile_fragment _DETAILS_OFF _DETAILS_DEFAULT _DETAILS_MASKALBEDONORMAL 
 #pragma multi_compile _METALLICTYPE_MAS _METALLICTYPE_METALLICSMOOTHNESS _METALLICTYPE_RMA _METALLICTYPE_MASK _METALLICTYPE_FLOATS
 //#pragma multi_compile_fragment _ _EMISSION_ON
-
+#pragma multi_compile_fragment _ _COLORMASK_ON
 
 #if defined(LITMAS_FEATURE_LIGHTMAPPING)
 	#pragma multi_compile _ LIGHTMAP_ON
@@ -127,6 +127,8 @@ SAMPLER(sampler_DetailMap);
 TEXTURE2D(_DetailAlbedoMap);
 TEXTURE2D(_DetailNormalMap);
 
+TEXTURE2D(_ColorMask);
+
 // Begin Injection UNIFORMS from Injection_Emission.hlsl ----------------------------------------------------------
 TEXTURE2D(_EmissionMap);
 // End Injection UNIFORMS from Injection_Emission.hlsl ----------------------------------------------------------
@@ -150,6 +152,11 @@ CBUFFER_START(UnityPerMaterial)
 	half4 _EmissionColor;
 	half  _EmissionFalloff;
 	half  _BakedMutiplier;
+
+	half4 _ColorShift1;
+	half4 _ColorShift2;
+	half4 _ColorShift3;
+	half4 _ColorShift4;
     // End Injection MATERIAL_CBUFFER from Injection_Emission.hlsl ----------------------------------------------------------
 	int _Surface;
 CBUFFER_END
@@ -226,11 +233,23 @@ half4 frag(VertOut i) : SV_Target
 	float2 uv_detail = mad(float2(i.uv0XY_bitZ_fog.xy), _DetailMap_ST.xy, _DetailMap_ST.zw);
 	half4 albedo = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, uv_main);
 	half4 mas = SAMPLE_TEXTURE2D(_MetallicGlossMap, sampler_BaseMap, uv_main);
-	half4 detail_albedo
 
 
 
 	albedo *= _BaseColor;
+
+	#if defined(_COLORMASK_ON)
+		half4 colorMask = SAMPLE_TEXTURE2D(_ColorMask, sampler_BaseMap, uv_main);
+		half4 white = half4(1,1,1,1);
+
+		half4 shiftR = lerp(white, _ColorShift1, colorMask.r);
+		half4 shiftG = lerp(white, _ColorShift2, colorMask.g);
+		half4 shiftB = lerp(white, _ColorShift3, colorMask.b);
+		half4 shiftA = lerp(white, _ColorShift4, colorMask.a);
+
+		albedo *= (shiftR * shiftB * shiftG * shiftA);
+	#endif
+
 	#if defined(_METALLICTYPE_MAS)
 		half metallic = mas.r + _Metallic;
 		half ao = mas.g;
