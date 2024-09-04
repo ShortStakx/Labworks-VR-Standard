@@ -1,9 +1,8 @@
 fileFormatVersion: 2
-guid: f47d3f5e64ea43d2a7b2135f91b2c3ab
+guid: 71f79ab728be4364f8b82febe4aca425
 ShaderImporter:
   externalObjects: {}
-  defaultTextures:
-  - _MetallicGlossMap: {fileID: 2800000, guid: bfeb91aff4ad47443a4ab34d16f4ff0a, type: 3}
+  defaultTextures: []
   nonModifiableTextures: []
   preprocessorOverride: 0
   userData: 
