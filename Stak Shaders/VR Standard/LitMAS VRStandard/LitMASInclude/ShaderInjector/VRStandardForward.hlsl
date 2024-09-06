@@ -226,6 +226,7 @@ VertOut vert(VertIn v)
 		float4 lastWPos = mul(GetPrevObjectToWorldMatrix(), v.vertex);
 		o.lastVertex = mul(prevVP, lastWPos);
 	#endif
+	// EVRONOTE: Do worldalignedtexture stuff
     // End Injection VERTEX_END from Injection_SSR.hlsl ----------------------------------------------------------
 	return o;
 }
@@ -248,16 +249,12 @@ half4 frag(VertOut i) : SV_Target
 
 	albedo *= _BaseColor;
 
-	#if defined(_COLORMASK_ON)
-		half4 colorMask = SAMPLE_TEXTURE2D(_ColorMask, sampler_BaseMap, uv_main);
-		half4 white = half4(1,1,1,1);
-
-		half4 shiftR = lerp(white, _ColorShift1, colorMask.r);
-		half4 shiftG = lerp(white, _ColorShift2, colorMask.g);
-		half4 shiftB = lerp(white, _ColorShift3, colorMask.b);
-		half4 shiftA = lerp(white, _ColorShift4, colorMask.a);
-
-		albedo *= (shiftR * shiftB * shiftG * shiftA);
+	#if ( _COLORMASK_ON )
+	{
+		float3 ColorMaskTex = 1 - SAMPLE_TEXTURE2D(_ColorMask, sampler_MainTex, uv_main).rgb ;
+		float3 ColorShifter = max(_ColorShift1.rgb, ColorMaskTex.rrr) * max(_ColorShift2.rgb, ColorMaskTex.ggg) * max(_ColorShift3.rgb, ColorMaskTex.bbb);
+		albedo.rgb *= ColorShifter;
+	}
 	#endif
 
 	#if defined(_METALLICTYPE_MAS)
@@ -310,26 +307,24 @@ half4 frag(VertOut i) : SV_Target
 
 	#if defined(_DETAILS_DEFAULT) 
 
-	// Begin Injection DETAIL_MAP from Injection_NormalMaps.hlsl ----------------------------------------------------------
 		half4 detailMap = SAMPLE_TEXTURE2D(_DetailMap, sampler_DetailMap, uv_detail);
 		half3 detailTS = half3(2.0 * detailMap.ag - 1.0, 1.0);
 		normalTS = BlendNormal(normalTS, detailTS);
-	// End Injection DETAIL_MAP from Injection_NormalMaps.hlsl ----------------------------------------------------------
-	   
+	
 		smoothness = saturate(2.0 * detailMap.b * smoothness);
 		albedo.rgb = OverlayBlendDetail(detailMap.r, albedo.rgb);
 
 	#elif defined (_DETAILS_MASKALBEDONORMAL)
 
-		half4 detailMask = SAMPLE_TEXTURE2D(_DetailMap, sampler_DetailMap, uv_detail);
-		half4 detailAlbedoMap = SAMPLE_TEXTURE2D(_DetailAlbedoMap, sampler_DetailMap, uv_detail);
-		half4 detailNormalMap = SAMPLE_TEXTURE2D(_DetailNormalMap, sampler_DetailMap, uv_detail);
+		float detailMask = SAMPLE_TEXTURE2D(_DetailMap, sampler_DetailMap, uv_detail).a;
 		
-		half3 detailNormalTS = UnpackNormal(detailNormalMap);
-
+		half3 detailAlbedoMap = SAMPLE_TEXTURE2D(_DetailAlbedoMap, sampler_DetailMap, uv_detail).rgb;
 		albedo.rgb *= lerp(float3(1, 1, 1), detailAlbedoMap.rgb * unity_ColorSpaceDouble.rgb, /*detailMask*/ 1 );
 
-		normalTS = BlendNormal(normalTS, detailNormalTS);
+		half4 detailNormalMap = SAMPLE_TEXTURE2D(_DetailNormalMap, sampler_DetailMap, uv_detail);
+		half3 vDetailNormalTs = UnpackScaleNormal(detailNormalMap, _DetailNormalMapScale);
+		normalTS.xyz = lerp( normalTS.xyz, BlendNormals( normalTS.xyz, vDetailNormalTs.xyz ), flDetailMask );
+
 	#endif
 
 
