@@ -38,7 +38,7 @@ TEXTURE2D(_EmissionMap);
 
 CBUFFER_START(UnityPerMaterial)
 	float4 _BaseMap_ST;
-	half4 _BaseColor;
+	half4 _Color;
 // Begin Injection MATERIAL_CBUFFER from Injection_NormalMap_CBuffer.hlsl ----------------------------------------------------------
 float4 _DetailMap_ST;
 half  _Details;
@@ -112,7 +112,7 @@ half4 frag(v2f i) : SV_Target
 
 	float2 uv_main = i.uv;
 
-	half4 albedo = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, i.uv) * _BaseColor;
+	half4 albedo = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, i.uv) * _Color;
 	metaInput.Albedo = albedo.rgb;
 
 

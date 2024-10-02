@@ -48,8 +48,8 @@ struct v2f
 // End Injection UNIFORMS from Injection_NormalMap_DepthNormals.hlsl ----------------------------------------------------------
 
 CBUFFER_START(UnityPerMaterial)
-	float4 _BaseMap_ST;
-	half4 _BaseColor;
+	float4 _MainTex_ST;
+	half4 _Color;
 // Begin Injection MATERIAL_CBUFFER from Injection_NormalMap_CBuffer.hlsl ----------------------------------------------------------
 float4 _DetailMap_ST;
 half  _Details;

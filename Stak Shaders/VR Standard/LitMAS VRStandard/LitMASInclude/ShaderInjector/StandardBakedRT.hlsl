@@ -32,15 +32,15 @@ struct Vertex
 };
 
 // Begin Injection UNIFORMS from Injection_Emission_BakedRT.hlsl ----------------------------------------------------------
-Texture2D<float4> _BaseMap;
+Texture2D<float4> _MainTex;
 SamplerState sampler_BaseMap;
 Texture2D<float4> _EmissionMap;
 SamplerState sampler_EmissionMap;
 // End Injection UNIFORMS from Injection_Emission_BakedRT.hlsl ----------------------------------------------------------
 
 CBUFFER_START( UnityPerMaterial )
-	float4 _BaseMap_ST;
-	half4 _BaseColor;
+	float4 _MainTex_ST;
+	half4 _Color;
 // Begin Injection MATERIAL_CBUFFER from Injection_NormalMap_CBuffer.hlsl ----------------------------------------------------------
 float4 _DetailMap_ST;
 half  _Details;
@@ -92,9 +92,9 @@ vInterpolated.texcoord = v0.texcoord * barycentrics.x + v1.texcoord * barycentri
 // else payload.color =  float4(10,0,0,1) ;
 
 
-float4 albedo = float4(_BaseMap.SampleLevel(sampler_BaseMap, vInterpolated.texcoord.xy * _BaseMap_ST.xy + _BaseMap_ST.zw, 0).rgb, 1) * _BaseColor;
+float4 albedo = float4(_MainTex.SampleLevel(sampler_BaseMap, vInterpolated.texcoord.xy * _MainTex_ST.xy + _MainTex_ST.zw, 0).rgb, 1) * _Color;
 
-float4 emission = _Emission * _EmissionMap.SampleLevel(sampler_EmissionMap, vInterpolated.texcoord * _BaseMap_ST.xy + _BaseMap_ST.zw, 0) * _EmissionColor;
+float4 emission = _Emission * _EmissionMap.SampleLevel(sampler_EmissionMap, vInterpolated.texcoord * _MainTex_ST.xy + _MainTex_ST.zw, 0) * _EmissionColor;
 
 emission.rgb *= lerp(albedo.rgb, 1, emission.a);
 
