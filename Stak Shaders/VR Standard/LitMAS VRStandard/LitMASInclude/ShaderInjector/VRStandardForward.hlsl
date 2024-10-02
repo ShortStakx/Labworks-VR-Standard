@@ -141,6 +141,12 @@
 	#pragma multi_compile _ LIGHTMAP_SHADOW_MIXING
 #endif
 
+#ifdef UNITY_COLORSPACE_GAMMA//ASE Color Space Def
+#define unity_ColorSpaceDouble half4(2.0, 2.0, 2.0, 2.0)//ASE Color Space Def
+#else // Linear values//ASE Color Space Def
+#define unity_ColorSpaceDouble half4(4.59479380, 4.59479380, 4.59479380, 2.0)//ASE Color Space Def
+#endif//ASE Color Space Def
+
 
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Texture.hlsl"
@@ -255,6 +261,8 @@ CBUFFER_START(UnityPerMaterial)
 	float		_ParallaxIterations;
 	float		_ParallaxOffset;
 	float 		_ColorMultiplier;
+	float4 _SpecColor;
+	float _SSRTemporalMul;
     // End Injection MATERIAL_CBUFFER from Injection_Emission.hlsl ----------------------------------------------------------
 	int _Surface;
 CBUFFER_END
@@ -296,6 +304,11 @@ float3 Vec3TsToWsNormalized( float3 vVectorTs, float3 vNormalWs, float3 vTangent
 	return normalize( Vec3TsToWs( vVectorTs.xyz, vNormalWs.xyz, vTangentUWs.xyz, vTangentVWs.xyz ) );
 }
 
+float3 BlendNormals(float3 n1, float3 n2)
+{
+    return normalize(float3(n1.xy + n2.xy, n1.z * n2.z));
+}
+
 VertOut vert(VertIn v)
 {
 	VertOut o = (VertOut)0;
@@ -305,7 +318,7 @@ VertOut vert(VertIn v)
 
 	o.wPos = TransformObjectToWorld(v.vertex.xyz);
 	o.vertex = TransformWorldToHClip(o.wPos);
-	o.vertexColor = i.vertexColor;
+	o.vertexColor = v.vertexColor;
 	o.uv0XY_bitZ_fog.xy = v.uv0.xy;
 
     #if defined(LIGHTMAP_ON) || defined(DIRLIGHTMAP_COMBINED)
@@ -363,8 +376,8 @@ half4 frag(VertOut i) : SV_Target
 	float3 vTangentVWs = float3( 0.0, 1.0, 0.0 );
 	#if ( _NORMALMAP || _PARALLAXMAP )
 	{
-		vTangentUWs.xyz = i.vTangentUWs.xyz;
-		vTangentVWs.xyz = i.vTangentVWs.xyz;
+		//vTangentUWs.xyz = i.vTangentUWs.xyz;
+		//vTangentVWs.xyz = i.vTangentVWs.xyz;
 	}
 	#endif
 
@@ -423,7 +436,7 @@ half4 frag(VertOut i) : SV_Target
 	float3 vGeometricNormalWs = float3( 0.0, 0.0, 1.0 );
 	#if ( !S_UNLIT )
 	{
-		vGeometricNormalWs.xyz = normalize(i.vNormalWs.xyz);
+		vGeometricNormalWs.xyz = normalize(i.normXYZ_tanX.xyz);
 	}
 	#endif
 
@@ -480,7 +493,7 @@ half4 frag(VertOut i) : SV_Target
 		float flDetailMask = SAMPLE_TEXTURE2D(_DetailMask, sampler_DetailAlbedoMap, zTextureCoords.xy).a;
 		float3 vDetailAlbedo = SAMPLE_TEXTURE2D( _DetailAlbedoMap, sampler_DetailAlbedoMap, zTextureCoords.zw ).rgb;
 		#if ( _DETAIL_MULX2 )
-			vAlbedo.rgb *= LerpWhiteTo( vDetailAlbedo.rgb * unity_ColorSpaceDouble.rgb, flDetailMask );
+			vAlbedo.rgb *= LerpWhiteTo( vDetailAlbedo.rgb * unity_ColorSpaceDouble, flDetailMask );
 		#elif ( _DETAIL_MUL )
 			vAlbedo.rgb *= LerpWhiteTo( vDetailAlbedo.rgb, flDetailMask );
 		#elif ( _DETAIL_ADD )
@@ -492,7 +505,9 @@ half4 frag(VertOut i) : SV_Target
 	#endif
 
 	#if ( !S_UNLIT || _ALPHAPREMULTIPLY_ON  )
-		Dotfresnel = saturate(dot( vNormalWs.xyz , CalculatePositionToCameraDirWs( i.vPositionWs.xyz ) ));	
+		float3 cameraPos = _WorldSpaceCameraPos; // Unity provides the camera's world position
+		float3 viewDir = normalize(cameraPos - i.wPos.xyz);
+		Dotfresnel = saturate(dot( vNormalWs.xyz , viewDir ));	
 	#endif
 
 	//-----------//
@@ -509,6 +524,7 @@ half4 frag(VertOut i) : SV_Target
 	// Reflectance and gloss
 	float3 vReflectance = float3( 0.0, 0.0, 0.0 );
 	float3 flGloss = float3(0.0, 0.0, 0.0);
+    float metallicSenderBalls = 0;
 	#if ( S_SPECULAR_METALLIC )
 	{
 		float2 vMetallicGloss;// = MetallicGloss( i.vTextureCoords.xy );
@@ -529,6 +545,7 @@ half4 frag(VertOut i) : SV_Target
 		//float3 diffColor = SLZAlbedoSpecularFromMetallic( vAlbedo.rgb, vMetallicGloss.x, /*out*/ vSpecColor, /*out*/ flOneMinusReflectivity);
 		//vAlbedo.rgb = diffColor.rgb;
 		//vReflectance.rgb = vSpecColor.rgb;
+		metallicSenderBalls = vMetallicGloss.x;
 		flGloss.x = vMetallicGloss.y;
 	}
 	#elif ( S_SPECULAR_BLINNPHONG )
@@ -541,7 +558,7 @@ half4 frag(VertOut i) : SV_Target
 		#endif
 
 		// Yea i do not know what this does
-		vReflectanceGloss.rgb = ( vReflectanceGloss.rgb * g_flReflectanceScale.xxx ) + g_flReflectanceBias.xxx;
+		//vReflectanceGloss.rgb = ( vReflectanceGloss.rgb * g_flReflectanceScale.xxx ) + g_flReflectanceBias.xxx;
 		
 		vReflectance.rgb = vReflectanceGloss.rgb;
 		flGloss.x = vReflectanceGloss.a;
@@ -567,6 +584,7 @@ half4 frag(VertOut i) : SV_Target
 		// vAlbedo.rgb = diffColor.rgb;
 
 		// vReflectance.rgb = vSpecColor.rgb;
+		metallicSenderBalls = vMetallicGloss.x;
 		flGloss.xyz = vMetallicGloss.yzw;
 	}
 
@@ -577,7 +595,7 @@ half4 frag(VertOut i) : SV_Target
 
 		float2 vMetallicGloss;
 		#ifdef _METALLICGLOSSMAP
-			vMetallicGloss.xy = SAMPLE_TEXTURE2D(_MetallicGlossMap,  zTextureCoords.xy).ra;
+			vMetallicGloss.xy = SAMPLE_TEXTURE2D(_MetallicGlossMap, sampler_MainTex  zTextureCoords.xy).ra;
 		#else
 			vMetallicGloss.xy = half2(_Metallic, _Glossiness);
 		#endif
@@ -589,6 +607,7 @@ half4 frag(VertOut i) : SV_Target
 		// vAlbedo.rgb = diffColor.rgb;
 
 		// vReflectance.rgb = vSpecColor.rgb;
+		metallicSenderBalls = vMetallicGloss.x;
 		flGloss.x = vMetallicGloss.y ;//* normalBlend;
 	}
 
@@ -622,11 +641,11 @@ half4 frag(VertOut i) : SV_Target
 	half4 normalMap = half4(0, 0, 1, 0);
 
 	// Begin Injection NORMAL_MAP from Injection_NormalMaps.hlsl ----------------------------------------------------------
-	normalMap = SAMPLE_TEXTURE2D(_BumpMap, sampler_BaseMap, uv_main);
-	normalTS = UnpackNormal(normalMap);
-	normalTS = _Normals ? normalTS : half3(0, 0, 1);
-	geoSmooth = _Normals ? normalMap.b : 1.0;
-	smoothness = saturate(smoothness + geoSmooth - 1.0);
+	//normalMap = SAMPLE_TEXTURE2D(_BumpMap, sampler_MainTex, uv_main);
+	//normalTS = UnpackNormal(normalMap);
+	//normalTS = _Normals ? normalTS : half3(0, 0, 1);
+	//geoSmooth = _Normals ? normalMap.b : 1.0;
+	//smoothness = saturate(smoothness + geoSmooth - 1.0);
 
 
 	/*---------------------------------------------------------------------------------------------------------------------------*/
@@ -680,7 +699,7 @@ half4 frag(VertOut i) : SV_Target
 	#endif
 	
 
-	SLZSurfData surfData = SLZGetSurfDataMetallicGloss(vAlbedo.rgb, saturate(vMetallicGloss.x), saturate(vMetallicGloss.y), ao, vEmission.rgb, 1.0 /*albedo.a*/);
+	SLZSurfData surfData = SLZGetSurfDataMetallicGloss(vAlbedo.rgb, saturate(metallicSenderBalls), saturate(flGloss.x), 1, vEmission.rgb, 1.0 /*albedo.a*/);
 	half4 color = half4(1, 1, 1, 1);
 
 	#if ( S_ANISOTROPIC_GLOSS )
